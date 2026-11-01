@@ -17,19 +17,20 @@
 
 <style>
   html, body { margin: 0; padding: 0; height: 100%; background: #262839; }
-  iframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; }
 </style>
 </head>
 <body>
 
-<!-- o app de verdade roda aqui dentro; essa página é só o "porteiro" que dá a cara de app instalado.
-     se um dia precisar abrir o app direto (sem essa casquinha), use o link do Apps Script de sempre. -->
-<iframe src="https://script.google.com/macros/s/AKfycbx4mfd7nlVWkvvVhmFMMvAs6DERu3CrxAmMqVYQeRB-m_cShP11ay3SZDsyFg8_iKwr/exec" title="Alimentação e mercado" allow="clipboard-write"></iframe>
-
+<!-- Essa página não mostra o app "dentro" dela (isso bloqueava o Google de reconhecer quem está
+     logado) — ela só manda direto pro link de sempre, assim que abre. -->
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(function () { /* sem problema se falhar */ });
   }
+  location.replace('https://script.google.com/macros/s/AKfycbx4mfd7nlVWkvvVhmFMMvAs6DERu3CrxAmMqVYQeRB-m_cShP11ay3SZDsyFg8_iKwr/exec');
 </script>
+<noscript>
+  <meta http-equiv="refresh" content="0; url=https://script.google.com/macros/s/AKfycbx4mfd7nlVWkvvVhmFMMvAs6DERu3CrxAmMqVYQeRB-m_cShP11ay3SZDsyFg8_iKwr/exec">
+</noscript>
 </body>
 </html>
