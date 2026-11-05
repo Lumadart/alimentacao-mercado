@@ -823,15 +823,27 @@ const gravarSessao = (t) => { try { if (t) localStorage.setItem(CHAVE_SESSAO, t)
 
 async function chamarApi(fn, args, comSessao) {
   let resp;
-  try {
-    resp = await fetch(APP_CONFIG.API_URL, {
-      method: 'POST',
-      // text/plain evita a "pré-verificação" (CORS), que o Apps Script não responde
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ fn: fn, args: args, sessao: comSessao === false ? '' : lerSessao() }),
-      redirect: 'follow'
-    });
-  } catch (e) { throw new Error('Sem conexão.'); }
+  const corpo = JSON.stringify({ fn: fn, args: args, sessao: comSessao === false ? '' : lerSessao() });
+  // leituras e login podem ser repetidos sem risco (o Apps Script às vezes falha na primeira chamada "a frio")
+  const tentativas = (fn === 'carregar' || fn === 'entrar') ? 3 : 1;
+  for (let i = 1; ; i++) {
+    try {
+      resp = await fetch(APP_CONFIG.API_URL, {
+        method: 'POST',
+        // text/plain evita a "pré-verificação" (CORS), que o Apps Script não responde
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: corpo,
+        redirect: 'follow'
+      });
+      break;
+    } catch (e) {
+      if (i >= tentativas) {
+        throw new Error(navigator.onLine === false ? 'Sem conexão com a internet.'
+          : 'Não consegui falar com o servidor. Confira o endereço em config.js e se a implantação está como "Qualquer pessoa"');
+      }
+      await new Promise((ok) => setTimeout(ok, 1500 * i));
+    }
+  }
   let d;
   try { d = await resp.json(); } catch (e) { throw new Error('Resposta inesperada do servidor.'); }
   if (!d.ok) {
@@ -1012,7 +1024,7 @@ function carregarTudo(manual) {
       fim();
       if (!pronto) {
         const er = $('splashErro');
-        er.replaceChildren('Não foi possível carregar: ' + msgErro(e) + '.',
+        er.replaceChildren('Não foi possível carregar: ' + msgErro(e).replace(/\.$/, '') + '.',
           h('div', null, h('button', { class: 'btn', onclick: () => location.reload() }, ic('atualizar', 18), 'Tentar de novo')));
         er.hidden = false;
         clearInterval(timerSplash);
