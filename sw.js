@@ -1,11 +1,14 @@
 // Guarda só a "casca" do app (arquivos do próprio site). Dados e login NUNCA ficam em cache:
 // as chamadas ao Apps Script são de outro domínio e este service worker nem chega a vê-las.
-const VERSAO = 'am-v1';
-const CASCA = ['./', 'index.html', 'config.js', 'manifest.webmanifest',
+const VERSAO = 'am-v2';
+const CASCA = ['./', 'index.html', 'config.js', 'manifest.json',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSAO).then((c) => c.addAll(CASCA)).then(() => self.skipWaiting()));
+  // um arquivo ausente não pode impedir a instalação do service worker
+  e.waitUntil(caches.open(VERSAO)
+    .then((c) => Promise.all(CASCA.map((u) => c.add(u).catch(() => {}))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
