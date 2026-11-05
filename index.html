@@ -236,6 +236,12 @@
   .cat-h { display: flex; align-items: center; gap: 8px; margin: 0 2px 8px; font-size: 13px; font-weight: 800; color: var(--roxo-claro); text-transform: uppercase; letter-spacing: .07em; }
   .cat-h .n { margin-left: auto; color: var(--mut); font-weight: 700; letter-spacing: 0; }
   .cat-h .ic { color: var(--roxo-claro); }
+  .cat-bloco.acord { margin-bottom: 10px; }
+  .cat-h.acord { width: 100%; margin: 0 0 8px; padding: 12px 14px; background: var(--surf); border: 0; border-radius: 14px; cursor: pointer; font-family: inherit; text-align: left; }
+  .cat-h.acord:hover { background: var(--surf2); }
+  .cat-h.acord .ic:last-child { color: var(--mut); transition: transform .2s ease; }
+  .cat-h.acord.aberto .ic:last-child { transform: rotate(180deg); }
+  .cat-h.acord:not(.aberto) { margin-bottom: 0; }
 
   .chk { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #6a6f98; display: grid; place-items: center; flex: none; color: transparent; transition: background .18s, border-color .18s, transform .12s; }
   .chk.on { color: var(--tinta); border-color: transparent; }
@@ -456,6 +462,11 @@
     .lista-solta.grade2 { grid-template-columns: 1fr 1fr; }
     .dsel { max-width: 70px; }
   }
+  #instalar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(88px + env(safe-area-inset-bottom)); z-index: 45; width: min(calc(100vw - 24px), 440px);
+    display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 16px; background: var(--surf2); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 12px 30px rgba(10,11,20,.5); }
+  #instalar[hidden] { display: none; }
+  .inst-txt { flex: 1; display: flex; flex-direction: column; line-height: 1.3; }
+  .inst-txt span { color: var(--mut); font-size: 13px; }
   #entrar { position: fixed; inset: 0; z-index: 60; background: var(--bg); display: grid; place-items: center; overflow: auto; }
   #entrar[hidden] { display: none; }
   .entrar-in { text-align: center; padding: 24px; width: min(88vw, 340px); }
@@ -510,6 +521,11 @@
 </div>
 
 <nav id="nav" hidden></nav>
+<div id="instalar" hidden>
+  <div class="inst-txt"><b>Instalar o app</b><span id="instDica"></span></div>
+  <button class="btn peq" id="instOk" type="button">Instalar</button>
+  <button class="icon-btn" id="instNao" type="button" aria-label="Agora não"></button>
+</div>
 <div id="toast" hidden></div>
 <div id="modal" hidden></div>
 <datalist id="dl-itens"></datalist>
@@ -769,7 +785,7 @@ let viewAtual = 'inicio';
 let ajustesSub = null;
 let segCompras = 'comprar';
 let animId = null;               // item cujo círculo acabou de ser marcado (microanimação)
-const UI = { dia: null, diaDe: '', diaAj: null, abertos: {}, meses: {}, soPerto: false };
+const UI = { catAbertas: {}, dia: null, diaDe: '', diaAj: null, abertos: {}, meses: {}, soPerto: false };
 const busca = { todos: '', sessao: '', ajItens: '', receitas: '', tipoReceita: 'todas' };
 
 function nomePadrao(email) {
@@ -1015,6 +1031,7 @@ function carregarTudo(manual) {
       const primeira = !pronto;
       pronto = true;
       esconderSplash();
+      if (primeira) setTimeout(mostrarInstalar, 1500);
       $('nav').hidden = false;
       $('topo').hidden = false;
       renderTudo(!primeira && !manual);
@@ -1677,6 +1694,23 @@ function categoriaBloco(cat, its, fn, extra) {
     h('div', { class: 'painel' }, its.map(fn)));
 }
 
+// categoria "sanfona": toca no título para abrir/fechar (lembra o que ficou aberto)
+function categoriaAcordeao(cat, its, fn, forcarAberta) {
+  const chave = cat || '';
+  let aberta = !!forcarAberta || !!UI.catAbertas[chave];
+  const marcados = its.filter((i) => i.precisa).length;
+  const painel = h('div', { class: 'exp' + (aberta ? ' aberto' : '') }, h('div', null, h('div', { class: 'painel' }, its.map(fn))));
+  const cab = h('button', { type: 'button', class: 'cat-h acord' + (aberta ? ' aberto' : ''), 'aria-expanded': String(aberta),
+    onclick: () => {
+      aberta = !aberta; UI.catAbertas[chave] = aberta;
+      painel.classList.toggle('aberto', aberta); cab.classList.toggle('aberto', aberta);
+      cab.setAttribute('aria-expanded', String(aberta));
+    } },
+    ic(catIcone(cat), 16), cat || 'Sem categoria',
+    h('span', { class: 'n', text: marcados ? marcados + ' na lista · ' + its.length : String(its.length) }), ic('baixo', 16));
+  return h('div', { class: 'cat-bloco acord' }, cab, painel);
+}
+
 function gruposMarcas(marcas) {
   return NIVEIS.map((nv) => {
     const ms = marcas.filter((m) => m.nivel === nv.id).sort(porNome);
@@ -1773,8 +1807,9 @@ function todosItens(v) {
       return;
     }
     const cats = h('div', { class: 'cats duas-col' });
+    const abrirTodas = !!t || UI.soPerto;   // buscando ou filtrando: mostra tudo aberto
     agrupar(arr).forEach(([cat, its]) => {
-      cats.append(categoriaBloco(cat, its, (item) => {
+      cats.append(categoriaAcordeao(cat, its, (item) => {
         const pv = !item.precisa ? previsao(item) : null;
         return blocoItem(item, {
           chk: { on: item.precisa, cor: 'azul', alerta: !!(pv && pv.perto) },
@@ -1786,7 +1821,7 @@ function todosItens(v) {
             ? [h('span', { class: 'prev-chip' + (pv.atrasado ? ' atrasado' : ''), title: 'Costuma comprar a cada ~' + pv.dias + ' dias' }, ic('calclock', 13), dmaCurto(pv.prox))]
             : [h('span', { class: 'prev-ic', title: 'Perto de comprar' }, ic('calclock', 17))]),
         });
-      }));
+      }, abrirTodas));
     });
     conteudo.append(cats);
   }
@@ -2424,6 +2459,31 @@ setInterval(() => {
   if (Date.now() - ultimoPoll >= intervalo) carregarTudo(false);
 }, 5000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && pronto) carregarTudo(false); });
+// ----- convite para instalar o app -----
+let eventoInstalar = null;
+const jaInstalado = () => (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+const ehIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const instalarAdiado = () => { try { return Date.now() < Number(localStorage.getItem('am_inst_nao') || 0); } catch (e) { return false; } };
+function mostrarInstalar() {
+  if (jaInstalado() || instalarAdiado() || (!eventoInstalar && !ehIOS)) return;
+  $('instDica').textContent = eventoInstalar ? 'Abra mais rápido, direto da tela inicial.'
+    : 'Toque em Compartilhar e depois em "Adicionar à Tela de Início".';
+  $('instOk').hidden = !eventoInstalar;
+  $('instalar').hidden = false;
+}
+$('instNao').replaceChildren(ic('x', 18));
+window.addEventListener('beforeinstallprompt', (ev) => { ev.preventDefault(); eventoInstalar = ev; if (pronto) mostrarInstalar(); });
+window.addEventListener('appinstalled', () => { eventoInstalar = null; $('instalar').hidden = true; });
+$('instOk').onclick = async () => {
+  if (!eventoInstalar) return;
+  const ev = eventoInstalar; eventoInstalar = null; $('instalar').hidden = true;
+  try { await ev.prompt(); await ev.userChoice; } catch (e) { /* o navegador recusou */ }
+};
+$('instNao').onclick = () => {
+  $('instalar').hidden = true;
+  try { localStorage.setItem('am_inst_nao', String(Date.now() + 14 * 86400000)); } catch (e) { /* sem armazenamento */ }
+};
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
 }
