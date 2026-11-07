@@ -776,18 +776,25 @@ const REFS = [
   { id: 'janta',        nome: 'Janta',           hora: '18:30', min: 1110, icone: 'lua' },
 ];
 const REF_TIPO = { cafe: 'cafe', lanche_manha: 'lanche', almoco: 'almoco', lanche_tarde: 'lanche', janta: 'janta' };
-const TIPOS = [
+let TIPOS = [
   { id: 'cafe', nome: 'Café da manhã', curto: 'Café', icone: 'cafe' },
   { id: 'lanche', nome: 'Lanche', curto: 'Lanche', icone: 'maca' },
   { id: 'almoco', nome: 'Almoço', curto: 'Almoço', icone: 'prato' },
   { id: 'janta', nome: 'Janta', curto: 'Janta', icone: 'lua' },
 ];
+// listas que vêm da aba "Opcoes" da planilha (se o servidor não mandar, ficam as de cima)
+function aplicarOpcoes(o) {
+  if (!o) return;
+  if (Array.isArray(o.tipos) && o.tipos.length) TIPOS = o.tipos.map((t) => ({ id: t.id, nome: t.nome, curto: t.curto || t.nome, icone: t.icone || 'chef' }));
+  if (Array.isArray(o.embalagens) && o.embalagens.length) UNIDADES_COMPRA = o.embalagens.slice();
+  if (Array.isArray(o.medidas) && o.medidas.length) UNIDADES = o.medidas.slice();
+}
 const nomeTipo = (id) => (TIPOS.find((t) => t.id === id) || { nome: id }).nome;
 const iconeTipo = (id) => (TIPOS.find((t) => t.id === id) || { icone: 'chef' }).icone;
-const UNIDADES = ['g', 'kg', 'ml', 'L', 'xíc.', 'col. sopa', 'col. chá', 'un.', 'fatia(s)', 'copo(s)', 'porção', 'pitada', 'a gosto'];
+let UNIDADES = ['g', 'kg', 'ml', 'L', 'xíc.', 'col. sopa', 'col. chá', 'un.', 'fatia(s)', 'copo(s)', 'porção', 'pitada', 'a gosto'];
 // unidade "padrão" de cada item (escolhida uma vez, no cadastro — ver editarItem).
 // Na lista de compras só se escolhe o número; a unidade já vem do item.
-const UNIDADES_COMPRA = ['un.', 'pacote(s)', 'caixa(s)', 'garrafa(s)', 'lata(s)', 'pote(s)', 'dúzia', 'fardo', 'kg', 'g', 'L', 'ml'];
+let UNIDADES_COMPRA = ['un.', 'pacote(s)', 'caixa(s)', 'garrafa(s)', 'lata(s)', 'pote(s)', 'dúzia', 'fardo', 'kg', 'g', 'L', 'ml'];
 // quanto o +/- andam a cada toque, e até onde vai, para cada unidade
 const PASSO_QTD = {
   '': { min: 1, max: 20, passo: 1, casas: 0 },
@@ -1108,6 +1115,7 @@ function carregarTudo(manual) {
       fim();
       if (pendentes > 0 || rev !== r0) return;   // houve alteração local no meio: descarta
       Object.assign(S, d);
+      aplicarOpcoes(d.opcoes);
       prepararDados();
       const primeira = !pronto;
       pronto = true;
