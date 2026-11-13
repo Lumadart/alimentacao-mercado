@@ -1,6 +1,6 @@
 // Guarda só a "casca" do app (arquivos do próprio site). Dados e login NUNCA ficam em cache:
 // as chamadas ao Apps Script são de outro domínio e este service worker nem chega a vê-las.
-const VERSAO = 'am-v6';
+const VERSAO = 'am-v7';
 const CASCA = ['./', 'index.html', 'config.js', 'manifest.json',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 

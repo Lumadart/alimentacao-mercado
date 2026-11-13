@@ -1065,7 +1065,9 @@ function chamarFoto(id, dataUrl) {
 }
 
 function prepararDados() {
-  S.recById = {}; S.receitas.forEach((r) => { S.recById[r.id] = r; });
+  S.recById = {};
+  { const vistos = {}; S.receitas = S.receitas.filter((r) => { r.id = String(r.id).trim(); if (vistos[r.id]) return false; vistos[r.id] = true; return true; }); }
+  S.receitas.forEach((r) => { S.recById[r.id] = r; });
   S.itemById = {}; S.itens.forEach((i) => { S.itemById[i.id] = i; });
   S.catPorNome = {}; S.categorias.forEach((c) => { S.catPorNome[c.nome] = c; });
   S.marcasPorItem = {};
@@ -1546,6 +1548,7 @@ function editarRefeicao(dia, ref) {
 
     const lista = h('div', { class: 'painel' });
     const busc = buscaBox({ placeholder: 'Buscar receita...', value: termo, oninput: (e) => { termo = e.target.value; pintarReceitas(); } });
+    let ultimoToque = 0;
     function pintarReceitas() {
       const t = norm(termo);
       const tipo = REF_TIPO[ref.id];
@@ -1554,6 +1557,9 @@ function editarRefeicao(dia, ref) {
       lista.replaceChildren(...arr.map((r) => {
         const on = s.receitas.includes(r.id);
         return h('div', { class: 'bloco' }, h('div', { class: 'linha clic', onclick: () => {
+          const agora = Date.now();
+          if (agora - ultimoToque < 250) return;   // ignora toque duplicado
+          ultimoToque = agora;
           const i = s.receitas.indexOf(r.id);
           if (i >= 0) s.receitas.splice(i, 1); else s.receitas.push(r.id);
           animId = r.id; pintarReceitas(); animId = null;
@@ -1830,7 +1836,7 @@ function blocoItem(item, o) {
       exp.classList.toggle('aberto', a); infoBtn.classList.toggle('aberto', a);
     } }, ic('info', 20))
     : null;
-  const subTxt = [o.qtd ? rotuloQtd(item) : '', o.sub || ''].filter(Boolean).join(' · ');
+  const subTxt = [(o.qtd || o.qtdVer) ? rotuloQtd(item) : '', o.sub || ''].filter(Boolean).join(' · ');
   const linha = h('div', { class: 'linha' + (o.onclick ? ' clic' : ''), onclick: o.onclick,
     ondblclick: o.qtd ? (e) => { if (!item.precisa) return; e.stopPropagation(); abrirQtdItem(item, 'Salvar'); } : null },
     o.chk ? chk(o.chk.on, o.chk.cor, item.id, o.chk.alerta) : null,
@@ -2049,8 +2055,8 @@ function renderSessao(v) {
     preencher(); animId = null;
     chamar('setCarrinho', item.id, item.carrinho);
   }
-  const linhaFalta = (item) => blocoItem(item, { chk: { on: false, cor: 'verde' }, thumb: true, info: true, onclick: () => alternar(item) });
-  const linhaCarrinho = (item) => blocoItem(item, { chk: { on: true, cor: 'verde' }, thumb: true, info: true, sub: item.categoria, onclick: () => alternar(item) });
+  const linhaFalta = (item) => blocoItem(item, { chk: { on: false, cor: 'verde' }, thumb: true, info: true, qtdVer: true, onclick: () => alternar(item) });
+  const linhaCarrinho = (item) => blocoItem(item, { chk: { on: true, cor: 'verde' }, thumb: true, info: true, qtdVer: true, sub: item.categoria, onclick: () => alternar(item) });
 
   function pintarResumo(nFalta, nCar) {
     const total = nFalta + nCar;
@@ -2070,7 +2076,7 @@ function renderSessao(v) {
     if (termo) {
       const achados = S.itens.filter((i) => !i.carrinho && (norm(i.nome).includes(termo) || norm(i.categoria).includes(termo))).sort(porNome).slice(0, 30);
       esq.append(h('div', { class: 'painel' }, achados.map((item) => blocoItem(item, {
-        chk: { on: false, cor: 'verde' }, thumb: true, info: true, sub: item.categoria,
+        chk: { on: false, cor: 'verde' }, thumb: true, info: true, qtdVer: true, sub: item.categoria,
         onclick: () => { busca.sessao = ''; input.value = ''; item.carrinho = true; animId = item.id; preencher(); animId = null; chamar('setCarrinho', item.id, true); },
       }))));
       const texto = busca.sessao.trim();
