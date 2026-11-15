@@ -39,6 +39,4 @@ Celular (este site, no GitHub Pages)  →  Apps Script (API com login)  →  Pla
 - `manifest.json`, `sw.js` e `icons/`: tornam o site instalável no celular.
 - `apps-script/`: o código que roda dentro da planilha (3 arquivos).
 
-Para configurar do zero, veja o passo a passo em [LEIA-ME.md](LEIA-ME.md).
-
 *As telas acima usam dados de exemplo.*
